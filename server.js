@@ -15,16 +15,17 @@ wss.on('connection', (ws) => {
   console.log('New client connected');
   if (ws.readyState === WebSocket.OPEN) {
     clients++;
-    ws.send(`User ${clients}`); // Ensure the message is sent as text
+    ws.send(JSON.stringify({str: `User ${clients}`})); // Ensure the message is sent as text
   }
 
 
   ws.on('message', (message) => {
-    console.log(`Received message: ${message}`);
+    const msg = JSON.parse(message);
+    console.log(`Received message: ${msg.str}`);
     // Broadcast the message to all clients
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(message.toString()); // Ensure the message is sent as text
+        client.send(JSON.stringify(msg)); // Ensure the message is sent as text
       }
     });
   });
