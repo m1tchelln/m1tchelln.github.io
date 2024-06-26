@@ -19,7 +19,7 @@ wss.on('connection', (ws) => {
   console.log('New client connected');
   if (ws.readyState === WebSocket.OPEN) {
     clients++;
-    ws.send(JSON.stringify({str: `User ${clients}`})); // Ensure the message is sent as text
+    ws.send(JSON.stringify({str: `User ${clients}`, type: "server"})); // Ensure the message is sent as text
   }
 
 

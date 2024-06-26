@@ -14,6 +14,11 @@
       background-color: #121212;
       color: #ffffff;
     }
+    img {
+      vertical-align:top;
+      padding-left: 2%;
+      height: 200px;
+    }
     #messages {
       border: 1px solid #ccc;
       padding: 10px;
@@ -48,6 +53,10 @@
       border: 1px solid #ccc;
       padding: 10px;
     }
+    i {
+      text-align: right;
+      color: grey;
+    }
   </style>
 </head>
 <body>
@@ -65,7 +74,8 @@
       $changename [name] <br>
       $changecolor [color] - Can be color name (eg. "red") or hex value <br>
       $changecolor picker - Changes to color of the picker<br>
-      $clear - Clears all text on your screen
+      $img [url] - post an image<br>
+      $clear - Clears all text on your screen<br>
     </a>
   </div>
 
@@ -79,22 +89,40 @@
     const commands = {
         changename: "$changename ",
         changecolor: "$changecolor ",
-        clear: "$clear"
+        clear: "$clear",
+        createimage: "$img "
     }
     const clientData = {name: null, textcolor: null}
 
     ws.onmessage = function(event) {
         const message = JSON.parse(event.data);
-        if (!clientData.name) {
-          clientData.name = message.str;
-          messageInput.placeholder = `Type a message ${clientData.name}`;
-        } else {
-            const messageElement = document.createElement('p');
-            messageElement.textContent = message.str;
-            messageElement.style.color = message.textcolor
-            messagesDiv.appendChild(messageElement);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        if (message.type == "server") {
+          if (!clientData.name) {
+            clientData.name = message.str;
+            messageInput.placeholder = `Type a message ${clientData.name}`;
+          } 
+        } else if (message.type == "text") {
+          const messageElement = document.createElement('p');
+          messageElement.textContent = `${message.name}: ${message.str}`;
+          messageElement.style.color = message.textcolor
+          messagesDiv.appendChild(messageElement);
+        } else if (message.type == "image") {
+          const imageElement = document.createElement('img');
+          const nameElement = document.createElement('a');
+          imageElement.src = message.str;
+          nameElement.textContent = `${message.name}: `;
+          messagesDiv.appendChild(nameElement);
+          messagesDiv.appendChild(imageElement);
         }
+        /*
+        if (message.type != "server") {
+          const timeElement = document.createElement('i');
+          timeElement.id = "time"
+          const date = new Date()
+          timeElement.textContent = `${date.toTimeString()}`;
+          messagesDiv.appendChild(timeElement);
+        } */
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     };
 
     messageForm.addEventListener('submit', function(event) {
@@ -102,10 +130,10 @@
         const message = {
           str: messageInput.value, 
           name: clientData.name, 
-          textcolor: clientData.textcolor
+          textcolor: clientData.textcolor,
+          type: "text"
         };
         if (message.str.trim() === '') return;
-        message.str = `${clientData.name}: ${message.str}`;
 
         if (message.str.includes(commands.clear)) {
           messagesDiv.innerHTML = '';
@@ -113,9 +141,11 @@
           return;
         }
 
-        ws.send(JSON.stringify(message));
         if (message.str.includes(commands.changename)) {
+          const oldName = clientData.name
           clientData.name = message.str.slice(message.str.indexOf(commands.changename) + commands.changename.length);
+          message.str = `${oldName} changed their name to ${clientData.name}`
+          message.textcolor = "grey"
           messageInput.placeholder = `Type a message ${clientData.name}`;
         } else if (message.str.includes(commands.changecolor)) {
           const newColor = message.str.slice(message.str.indexOf(commands.changecolor) + commands.changecolor.length);
@@ -125,7 +155,13 @@
           } else {
             clientData.textcolor = newColor;
           }
+        } else if (message.str.includes(commands.createimage)) {
+          const img = message.str.slice(message.str.indexOf(commands.createimage) + commands.createimage.length);
+          message.type = "image";
+          message.str = img;
         }
+
+        ws.send(JSON.stringify(message));
         messageInput.value = '';
     });
 
