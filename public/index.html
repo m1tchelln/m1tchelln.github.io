@@ -5,7 +5,7 @@
   <title>Simple Messaging App</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Helvetica;
       background-color: #ffffff;
       color: #000000;
       transition: background-color 0.3s, color 0.3s;
@@ -18,13 +18,24 @@
       border: 1px solid #ccc;
       padding: 10px;
       height: 300px;
-      overflow-y: scroll;
+      width: 1200px;
+      overflow-y: auto;
       background-color: #ffffff;
       transition: background-color 0.3s, border-color 0.3s;
+      word-wrap: break-word;
     }
     body.dark-mode #messages {
       background-color: #1e1e1e;
       border-color: #333333;
+    }
+    #messageInput {
+      width: 300px;
+      height: 30px;
+      word-wrap: break-word;
+      text-align: left;
+      border-radius: 20px;
+      padding: 8px 15px;
+      display: inline-block;
     }
     #messageForm {
       margin-top: 10px;
@@ -32,16 +43,31 @@
     #darkModeToggle {
       margin-bottom: 10px;
     }
+    #commands {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>Simple Messaging App</h1>
   <button id="darkModeToggle">Toggle Dark Mode</button>
+  <input type="color" id="favcolor" name="favcolor" value="#ff0000">
   <div id="messages"></div>
   <form id="messageForm">
-    <input type="text" id="messageInput" placeholder="Type your message...">
+    <input type="text" id="messageInput" placeholder="Type your message..." maxlength=240>
     <button type="submit">Send</button>
   </form>
+  <div id="commands" disabled>
+    <a>
+      commands: <br>
+      $changename [name] <br>
+      $changecolor [color] - Can be color name (eg. "red") or hex value <br>
+      $changecolor picker - Changes to color of the picker<br>
+      $clear - Clears all text on your screen
+    </a>
+  </div>
 
   <script>
     const ws = new WebSocket(`ws://${window.location.host}`);
@@ -49,18 +75,23 @@
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
     const darkModeToggle = document.getElementById('darkModeToggle');
+    const colorpicker = document.getElementById('favcolor')
     const commands = {
-        changename: "$changename "
+        changename: "$changename ",
+        changecolor: "$changecolor ",
+        clear: "$clear"
     }
-    let clientName = null;
+    const clientData = {name: null, textcolor: null}
 
     ws.onmessage = function(event) {
         const message = JSON.parse(event.data);
-        if (!clientName) {
-            clientName = message.str;
+        if (!clientData.name) {
+          clientData.name = message.str;
+          messageInput.placeholder = `Type a message ${clientData.name}`;
         } else {
             const messageElement = document.createElement('p');
             messageElement.textContent = message.str;
+            messageElement.style.color = message.textcolor
             messagesDiv.appendChild(messageElement);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -68,12 +99,32 @@
 
     messageForm.addEventListener('submit', function(event) {
         event.preventDefault();
-        const message = {str: messageInput.value};
+        const message = {
+          str: messageInput.value, 
+          name: clientData.name, 
+          textcolor: clientData.textcolor
+        };
         if (message.str.trim() === '') return;
-        message.str = `${clientName}: ${message.str}`;
+        message.str = `${clientData.name}: ${message.str}`;
+
+        if (message.str.includes(commands.clear)) {
+          messagesDiv.innerHTML = '';
+          messageInput.value = '';
+          return;
+        }
+
         ws.send(JSON.stringify(message));
         if (message.str.includes(commands.changename)) {
-            clientName = message.str.slice(message.str.indexOf(commands.changename) + commands.changename.length);
+          clientData.name = message.str.slice(message.str.indexOf(commands.changename) + commands.changename.length);
+          messageInput.placeholder = `Type a message ${clientData.name}`;
+        } else if (message.str.includes(commands.changecolor)) {
+          const newColor = message.str.slice(message.str.indexOf(commands.changecolor) + commands.changecolor.length);
+          if (newColor == "picker" || newColor == "Picker") {
+            console.log(newColor);
+            clientData.textcolor = colorpicker.value;
+          } else {
+            clientData.textcolor = newColor;
+          }
         }
         messageInput.value = '';
     });

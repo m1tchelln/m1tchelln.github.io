@@ -10,6 +10,10 @@ let clients = 0;
 // Serve static files from the "public" directory
 app.use(express.static('public'));
 
+app.get('/hello', (c) => {
+  console.log("hi")
+})
+
 // WebSocket connection
 wss.on('connection', (ws) => {
   console.log('New client connected');
