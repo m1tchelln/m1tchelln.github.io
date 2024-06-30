@@ -65,6 +65,7 @@
   <input type="color" id="favcolor" name="favcolor" value="#ff0000">
   <div id="messages"></div>
   <form id="messageForm">
+    <input type="file" id="imageInput" accept="image/*">
     <input type="text" id="messageInput" placeholder="Type your message..." maxlength=240>
     <button type="submit">Send</button>
   </form>
@@ -84,6 +85,7 @@
     const messagesDiv = document.getElementById('messages');
     const messageForm = document.getElementById('messageForm');
     const messageInput = document.getElementById('messageInput');
+    const imageInput = document.getElementById('imageInput');
     const darkModeToggle = document.getElementById('darkModeToggle');
     const colorpicker = document.getElementById('favcolor')
     const commands = {
@@ -104,6 +106,12 @@
         } else if (message.type == "text") {
           const messageElement = document.createElement('p');
           messageElement.textContent = `${message.name}: ${message.str}`;
+          messageElement.style.color = message.textcolor
+          messagesDiv.appendChild(messageElement);
+        } else if (message.type == "comment") {
+          const messageElement = document.createElement('p');
+          messageElement.textContent = `${message.str}`;
+          message.textcolor = "grey"
           messageElement.style.color = message.textcolor
           messagesDiv.appendChild(messageElement);
         } else if (message.type == "image") {
@@ -145,7 +153,7 @@
           const oldName = clientData.name
           clientData.name = message.str.slice(message.str.indexOf(commands.changename) + commands.changename.length);
           message.str = `${oldName} changed their name to ${clientData.name}`
-          message.textcolor = "grey"
+          message.type = "comment"
           messageInput.placeholder = `Type a message ${clientData.name}`;
         } else if (message.str.includes(commands.changecolor)) {
           const newColor = message.str.slice(message.str.indexOf(commands.changecolor) + commands.changecolor.length);
